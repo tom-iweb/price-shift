@@ -1,0 +1,33 @@
+# Dependencies and generated builds
+node_modules/
+.next/
+out/
+build/
+
+# Vercel local project metadata
+.vercel/
+
+# Local environment secrets (keep the documented template)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# TypeScript build metadata
+*.tsbuildinfo
+next-env.d.ts
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
