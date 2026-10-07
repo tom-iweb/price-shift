@@ -16,12 +16,12 @@ export async function POST(request: NextRequest) {
     if (!member) throw new Error('You do not have permission to publish prices in this workspace.');
     const { data: connection, error: connectionError } = await admin.from('magento_connections').select('*').eq('workspace_id', workspaceId).maybeSingle();
     if (connectionError || !connection) throw new Error('Save Magento 2 connection settings before publishing prices.');
-    const { data: items, error } = await admin.from('price_change_items').select('id,batch_id,product_id,new_price_pence,new_option_values,products!inner(sku),price_change_batches!inner(workspace_id)').in('id', itemIds).eq('status', 'pending').eq('price_change_batches.workspace_id', workspaceId);
-    if (error) throw error;
-    if (!items?.length) throw new Error('The selected changes are no longer pending.');
+    const items: any[] = []; const pageSize = 500;
+    for (let start = 0; start < itemIds.length; start += pageSize) { const { data, error } = await admin.from('price_change_items').select('id,batch_id,product_id,new_price_pence,new_option_values,products!inner(sku),price_change_batches!inner(workspace_id)').in('id', itemIds.slice(start, start + pageSize)).eq('status', 'pending').eq('price_change_batches.workspace_id', workspaceId); if (error) throw error; items.push(...(data ?? [])); }
+    if (!items.length) throw new Error('The selected changes are no longer pending.');
     const accessToken = decryptSecret(connection.encrypted_access_token, connection.encryption_iv, connection.encryption_tag);
     const results: Array<{ id: string; ok: boolean; error?: string }> = [];
-    for (const item of items as any[]) {
+    for (const item of items) {
       try {
         await updateMagentoPrice(connection.base_url, connection.store_code, accessToken, item.products.sku, item.new_price_pence);
         for (const option of item.new_option_values ?? []) await updateMagentoOption(connection.base_url, connection.store_code, accessToken, item.products.sku, option);

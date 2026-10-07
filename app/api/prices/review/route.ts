@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     if (!auth.user) throw new Error('Your session is invalid.');
     const { data: member } = await admin.from('workspace_members').select('workspace_id').eq('workspace_id', workspaceId).eq('user_id', auth.user.id).maybeSingle();
     if (!member) throw new Error('You do not have permission to view these price changes.');
-    const { data, error } = await admin.from('price_change_items').select('id,batch_id,old_price_pence,new_price_pence,status,error,price_change_batches!inner(uplift_pct,include_custom_options,created_at,workspace_id),products!inner(sku,name,category,brand,status)').eq('price_change_batches.workspace_id', workspaceId).order('created_at', { foreignTable: 'price_change_batches', ascending: false }).order('id');
-    if (error) throw error;
-    return NextResponse.json({ items: data ?? [] });
+    const items: unknown[] = []; const pageSize = 500;
+    for (let start = 0; ; start += pageSize) { const { data, error } = await admin.from('price_change_items').select('id,batch_id,old_price_pence,new_price_pence,status,error,price_change_batches!inner(uplift_pct,include_custom_options,created_at,workspace_id),products!inner(sku,name,category,brand,status)').eq('price_change_batches.workspace_id', workspaceId).order('created_at', { foreignTable: 'price_change_batches', ascending: false }).order('id').range(start, start + pageSize - 1); if (error) throw error; items.push(...(data ?? [])); if (!data || data.length < pageSize) break; }
+    return NextResponse.json({ items });
   } catch (error) { const message = error instanceof Error ? error.message : 'Could not load price changes.'; return NextResponse.json({ error: message }, { status: 400 }); }
 }
