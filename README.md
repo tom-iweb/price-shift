@@ -28,11 +28,15 @@ If the first owner sees “No pricing workspace is assigned to this user”, the
 
 The schema covers workspaces and roles, pricing thresholds, products, import batches, and immutable audit events. Product rows use pence for prices to avoid currency rounding errors; every row belongs to a workspace.
 
-Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `INTEGRATION_SECRET_ENCRYPTION_KEY` as Vercel server-only environment variables; do not expose them with a `NEXT_PUBLIC_` prefix. Magento sync uses the Magento 2 REST API to upsert products and custom options into Supabase.
+Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `INTEGRATION_SECRET_ENCRYPTION_KEY` as Vercel server-only environment variables; do not expose them with a `NEXT_PUBLIC_` prefix.
+
+## Magento catalogue sync
+
+Run [`supabase/migrations/0003_magento_sync_jobs.sql`](supabase/migrations/0003_magento_sync_jobs.sql) after the earlier migrations. The **Import from Magento** action queues a catalogue job; it does not hold the browser open. The Vercel Cron worker processes 25 products and their custom options per minute, records progress in Supabase, and resumes a queued job from its saved page. Add a long random `CRON_SECRET` to Vercel and the production environment before deploying; [`vercel.json`](vercel.json) runs the protected worker each minute. Failed jobs can be retried by clicking Import from Magento again.
 
 ## Deploy to Vercel
 
-Import this folder as a Vercel project, use the default Next.js build settings, and add the public Supabase variables plus the three server-only variables listed in `.env.example`. The `npm run build` command is the deployment check.
+Import this folder as a Vercel project, use the default Next.js build settings, and add the public Supabase variables plus the four server-only variables listed in `.env.example`. The `npm run build` command is the deployment check.
 
 ## Routes
 

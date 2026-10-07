@@ -1,43 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { attribute, listMagentoOptions, listMagentoProducts } from '@/lib/server/magento';
-import { decryptSecret } from '@/lib/server/secrets';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+
+async function authorize(request: NextRequest, workspaceId: unknown) {
+  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token || typeof workspaceId !== 'string') throw new Error('Sign in and choose a workspace before starting a sync.');
+  const admin = createAdminClient();
+  const { data: auth, error: authError } = await admin.auth.getUser(token);
+  if (authError || !auth.user) throw new Error('Your session is invalid.');
+  const { data: membership } = await admin.from('workspace_members').select('role').eq('workspace_id', workspaceId).eq('user_id', auth.user.id).in('role', ['admin', 'editor']).maybeSingle();
+  if (!membership) throw new Error('You do not have permission to sync this workspace.');
+  return { admin, userId: auth.user.id, workspaceId };
+}
+
+function errorResponse(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Magento sync failed.';
+  const status = message.includes('permission') ? 403 : message.includes('session') || message.includes('Sign in') ? 401 : 400;
+  return NextResponse.json({ error: message }, { status });
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { admin, workspaceId } = await authorize(request, request.nextUrl.searchParams.get('workspaceId'));
+    const { data, error } = await admin.from('magento_sync_jobs').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (error) throw error;
+    return NextResponse.json({ job: data });
+  } catch (error) { return errorResponse(error); }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-    if (!token) return NextResponse.json({ error: 'Sign in before starting a sync.' }, { status: 401 });
-    const { workspaceId } = await request.json();
-    if (!workspaceId) return NextResponse.json({ error: 'Workspace is required.' }, { status: 400 });
-    const admin = createAdminClient();
-    const { data: auth } = await admin.auth.getUser(token);
-    if (!auth.user) return NextResponse.json({ error: 'Your session is invalid.' }, { status: 401 });
-    const { data: membership } = await admin.from('workspace_members').select('role').eq('workspace_id', workspaceId).eq('user_id', auth.user.id).in('role', ['admin', 'editor']).maybeSingle();
-    if (!membership) return NextResponse.json({ error: 'You do not have permission to sync this workspace.' }, { status: 403 });
-    const { data: connection, error: connectionError } = await admin.from('magento_connections').select('*').eq('workspace_id', workspaceId).single();
-    if (connectionError || !connection) return NextResponse.json({ error: 'Save Magento 2 connection settings before syncing.' }, { status: 400 });
-    const accessToken = decryptSecret(connection.encrypted_access_token, connection.encryption_iv, connection.encryption_tag);
-    const remoteProducts = await listMagentoProducts(connection.base_url, connection.store_code, accessToken);
-    let optionCount = 0;
-    for (const remote of remoteProducts) {
-      const cost = Number(attribute(remote, 'cost') ?? 0);
-      const supplier = attribute(remote, 'supplier') ?? null;
-      const brand = attribute(remote, 'manufacturer') ?? attribute(remote, 'brand') ?? null;
-      const category = remote.extension_attributes?.category_links?.[0]?.category_id ?? null;
-      const { data: product, error: productError } = await admin.from('products').upsert({ workspace_id: workspaceId, sku: remote.sku, name: remote.name, category, brand, supplier, current_cost_pence: Math.round(cost * 100), new_cost_pence: Math.round(cost * 100), selling_price_pence: Math.round(Number(remote.price ?? 0) * 100), magento_product_id: remote.id, magento_product_type: remote.type_id ?? null, magento_payload: remote, updated_at: new Date().toISOString() }, { onConflict: 'workspace_id,sku' }).select('id').single();
-      if (productError) throw productError;
-      const options = await listMagentoOptions(connection.base_url, connection.store_code, accessToken, remote.sku);
-      if (options.length) {
-        const rows = options.map((option) => ({ product_id: product.id, magento_option_id: option.option_id, title: option.title, input_type: option.type, is_required: option.is_require, sort_order: option.sort_order, option_values: option.values ?? [] }));
-        const { error: optionsError } = await admin.from('product_custom_options').upsert(rows, { onConflict: 'product_id,magento_option_id' });
-        if (optionsError) throw optionsError;
-        optionCount += rows.length;
-      }
-    }
-    await admin.from('audit_log').insert({ workspace_id: workspaceId, action: 'magento_sync', subject_type: 'workspace', payload: { products: remoteProducts.length, customOptions: optionCount }, created_by: auth.user.id });
-    return NextResponse.json({ ok: true, products: remoteProducts.length, customOptions: optionCount });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Magento sync failed.' }, { status: 500 }); }
+    const body = await request.json(); const { admin, userId, workspaceId } = await authorize(request, body.workspaceId);
+    const { data: connection, error: connectionError } = await admin.from('magento_connections').select('workspace_id').eq('workspace_id', workspaceId).maybeSingle();
+    if (connectionError || !connection) throw new Error('Save Magento 2 connection settings before syncing.');
+    const { data: active, error: activeError } = await admin.from('magento_sync_jobs').select('*').eq('workspace_id', workspaceId).in('status', ['queued', 'running']).maybeSingle();
+    if (activeError) throw activeError;
+    if (active) return NextResponse.json({ job: active, alreadyQueued: true }, { status: 202 });
+    const { data: failed, error: failedError } = await admin.from('magento_sync_jobs').select('*').eq('workspace_id', workspaceId).eq('status', 'failed').order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (failedError) throw failedError;
+    const update = { status: 'queued', error: null, locked_at: null, started_at: null, completed_at: null };
+    const { data: job, error } = failed ? await admin.from('magento_sync_jobs').update(update).eq('id', failed.id).select('*').single() : await admin.from('magento_sync_jobs').insert({ workspace_id: workspaceId, created_by: userId }).select('*').single();
+    if (error || !job) throw error ?? new Error('Could not queue Magento sync.');
+    return NextResponse.json({ job }, { status: 202 });
+  } catch (error) { return errorResponse(error); }
 }

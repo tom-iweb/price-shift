@@ -12,16 +12,9 @@ async function magentoFetch<T>(url: string, token: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function listMagentoProducts(baseUrl: string, storeCode: string, token: string) {
-  const all: MagentoProduct[] = [];
-  let page = 1;
-  while (true) {
-    const query = new URLSearchParams({ 'searchCriteria[currentPage]': String(page), 'searchCriteria[pageSize]': '100' });
-    const result = await magentoFetch<{ items: MagentoProduct[]; total_count: number }>(endpoint(baseUrl, storeCode, `/products?${query}`), token);
-    all.push(...result.items);
-    if (all.length >= result.total_count || result.items.length === 0) return all;
-    page += 1;
-  }
+export async function listMagentoProductPage(baseUrl: string, storeCode: string, token: string, page: number, pageSize = 25) {
+  const query = new URLSearchParams({ 'searchCriteria[currentPage]': String(page), 'searchCriteria[pageSize]': String(pageSize) });
+  return magentoFetch<{ items: MagentoProduct[]; total_count: number }>(endpoint(baseUrl, storeCode, `/products?${query}`), token);
 }
 
 export async function listMagentoOptions(baseUrl: string, storeCode: string, token: string, sku: string) {
