@@ -7,7 +7,7 @@ function endpoint(baseUrl: string, storeCode: string, path: string) {
 }
 
 async function magentoFetch<T>(url: string, token: string): Promise<T> {
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, cache: 'no-store' });
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'User-Agent': process.env.MAGENTO_SYNC_USER_AGENT || 'PriceShift-Magento-Sync/1.0' }, cache: 'no-store' });
   if (!response.ok) throw new Error(`Magento responded with ${response.status}: ${await response.text()}`);
   return response.json() as Promise<T>;
 }

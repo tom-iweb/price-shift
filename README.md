@@ -28,11 +28,13 @@ If the first owner sees “No pricing workspace is assigned to this user”, the
 
 The schema covers workspaces and roles, pricing thresholds, products, import batches, and immutable audit events. Product rows use pence for prices to avoid currency rounding errors; every row belongs to a workspace.
 
-Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `INTEGRATION_SECRET_ENCRYPTION_KEY` as Vercel server-only environment variables; do not expose them with a `NEXT_PUBLIC_` prefix.
+Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `INTEGRATION_SECRET_ENCRYPTION_KEY` as Vercel server-only environment variables; do not expose them with a `NEXT_PUBLIC_` prefix. Generate the encryption key once with `openssl rand -base64 32`, store its output as `INTEGRATION_SECRET_ENCRYPTION_KEY` in Vercel and `.env.local`, and retain the same value. Changing it makes previously stored Magento tokens unreadable.
 
 ## Magento catalogue sync
 
 Run [`supabase/migrations/0003_magento_sync_jobs.sql`](supabase/migrations/0003_magento_sync_jobs.sql) after the earlier migrations. The **Import from Magento** action queues a catalogue job; it does not hold the browser open. The Vercel Cron worker processes 25 products and their custom options per minute, records progress in Supabase, and resumes a queued job from its saved page. Add a long random `CRON_SECRET` to Vercel and the production environment before deploying; [`vercel.json`](vercel.json) runs the protected worker each minute. Failed jobs can be retried by clicking Import from Magento again.
+
+Magento requests identify themselves with `User-Agent: PriceShift-Magento-Sync/1.0`. Set `MAGENTO_SYNC_USER_AGENT` if your Magento allowlist requires a different stable value.
 
 ## Deploy to Vercel
 
