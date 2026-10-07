@@ -23,6 +23,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   if (state === 'ready') return <>{children}</>;
-  if (state === 'configuration') return <main className="auth-page"><section className="auth-card"><div className="brand compact"><span className="brand-mark">PS</span><span><strong>PriceShift</strong><small>Margin Control</small></span></div><h1>Authentication needs configuration</h1><p>Add your Supabase URL and anon key to <code>.env.local</code> before signing in.</p></section></main>;
+  if (state === 'configuration') return <main className="auth-page"><section className="auth-card"><div className="brand compact"><span className="brand-mark">G</span><span><strong>Gauge</strong><small>by iWeb · Margin Control</small></span></div><h1>Authentication needs configuration</h1><p>Add your Supabase URL and anon key to <code>.env.local</code> before signing in.</p></section></main>;
   return <main className="auth-page"><section className="auth-card auth-loading"><span className="loader"/><p>Checking your secure session…</p></section></main>;
 }

@@ -1,6 +1,6 @@
-# PriceShift for Vercel + Supabase
+# Gauge by iWeb for Vercel + Supabase
 
-This is a Next.js rebuild of the supplier-pricing workspace. It keeps the PriceShift interface and its main operating flow while moving the production data design from Symfony/MySQL to Supabase/Postgres.
+This is a Next.js rebuild of the supplier-pricing workspace. It provides the Gauge by iWeb interface and its main operating flow while moving the production data design from Symfony/MySQL to Supabase/Postgres.
 
 ## Run locally
 
@@ -24,7 +24,7 @@ Without Supabase environment variables the app displays its authentication setup
 
 Workspace admins can add users from **Settings → Users**, select an admin, editor, or viewer role, change roles, and remove workspace access. Adding a new email sends Supabase’s invitation email; after accepting it, the person signs in using the usual one-time email code. Existing Supabase users are added immediately.
 
-Add your deployed callback URL (for example `https://priceshift.iweb-app.com/auth`) to Supabase Auth’s redirect URL allow list. Invitation links return there to establish the invited user’s browser session.
+Add your deployed callback URL (for example `https://your-app.iweb-app.com/auth`) to Supabase Auth’s redirect URL allow list. Invitation links return there to establish the invited user’s browser session.
 
 If the first owner sees “No pricing workspace is assigned to this user”, their auth account was created before the initial workspace trigger was installed. In the Supabase SQL editor, edit the email and workspace name at the top of [`supabase/setup/first_workspace.sql`](supabase/setup/first_workspace.sql), then run it once. Sign out and back in afterwards; the owner will be an admin and can manage everyone from Settings.
 
@@ -36,7 +36,7 @@ Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL
 
 Run [`supabase/migrations/0003_magento_sync_jobs.sql`](supabase/migrations/0003_magento_sync_jobs.sql) after the earlier migrations. The **Import from Magento** action queues a catalogue job; it does not hold the browser open. The Vercel Cron worker processes 25 products and their custom options per minute, records progress in Supabase, and resumes a queued job from its saved page. Add a long random `CRON_SECRET` to Vercel and the production environment before deploying; [`vercel.json`](vercel.json) runs the protected worker each minute. Failed jobs can be retried by clicking Import from Magento again.
 
-Magento requests identify themselves with `User-Agent: PriceShift-Magento-Sync/1.0`. Set `MAGENTO_SYNC_USER_AGENT` if your Magento allowlist requires a different stable value.
+Magento requests identify themselves with `User-Agent: Gauge-by-iWeb-Magento-Sync/1.0`. Set `MAGENTO_SYNC_USER_AGENT` if your Magento allowlist requires a different stable value.
 
 ## Deploy to Vercel
 

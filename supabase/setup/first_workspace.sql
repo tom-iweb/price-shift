@@ -4,7 +4,7 @@
 do $$
 declare
   target_email text := 'tom@iweb.co.uk';
-  target_workspace_name text := 'PriceShift workspace';
+  target_workspace_name text := 'Gauge by iWeb workspace';
   target_user_id uuid;
   target_workspace_id uuid;
 begin
