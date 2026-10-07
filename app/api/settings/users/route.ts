@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (!/^\S+@\S+\.\S+$/.test(email) || !validRole(body.role)) throw new Error('Enter a valid email address and role.');
     let account = await findUserByEmail(admin, email); let invited = false;
     if (!account) {
-      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { data: { skip_workspace_setup: true } });
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: new URL('/auth', request.url).toString(), data: { skip_workspace_setup: true } });
       if (error || !data.user) throw error ?? new Error('Could not send an invitation.');
       account = data.user; invited = true;
     }
