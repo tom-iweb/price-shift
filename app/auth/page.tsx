@@ -12,7 +12,15 @@ export default function InviteCallbackPage() {
     const supabase = createClient();
     if (!supabase) { setMessage('Authentication is not configured for this site.'); return; }
     const finish = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const accessToken = hash.get('access_token');
+      const refreshToken = hash.get('refresh_token');
+      const code = new URLSearchParams(window.location.search).get('code');
+      const { data, error } = accessToken && refreshToken
+        ? await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        : code
+          ? await supabase.auth.exchangeCodeForSession(code)
+          : await supabase.auth.getSession();
       if (error) { setMessage(error.message); return; }
       if (data.session) router.replace('/');
       else setMessage('Your invitation link could not be verified. Request a new invitation from a workspace admin.');
