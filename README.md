@@ -40,6 +40,12 @@ Magento requests identify themselves with `User-Agent: PriceShift-Magento-Sync/1
 
 Import this folder as a Vercel project, use the default Next.js build settings, and add the public Supabase variables plus the four server-only variables listed in `.env.example`. The `npm run build` command is the deployment check.
 
+## Price changes
+
+**Modify Prices** combines the supplier cost upload with manual price uplifts. Manual uplifts can be limited by SKU, category, and brand. They are staged with their old and proposed selling prices, and optionally uplift fixed-price Magento custom options. The review queue lets an editor select rows for bulk publishing; each selected product and option price is then sent to Magento and recorded in the audit log.
+
+Run [`supabase/migrations/0004_price_change_reviews.sql`](supabase/migrations/0004_price_change_reviews.sql) after the earlier migrations to enable this workflow.
+
 ## Routes
 
-`/` dashboard · `/products` workbench · `/upload` cost-import wizard · `/analysis` margin analysis · `/audit` approval history · `/settings` pricing rules.
+`/` dashboard · `/products` workbench · `/prices` modify prices · `/prices/review` publish queue · `/upload` cost-import wizard · `/analysis` margin analysis · `/audit` approval history · `/settings` pricing rules.

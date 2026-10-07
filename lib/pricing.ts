@@ -1,4 +1,4 @@
-export type Status = 'cost_pending' | 'approved' | 'applied' | 'ignored';
+export type Status = 'cost_pending' | 'price_pending' | 'approved' | 'applied' | 'ignored';
 export type Product = { id: string; sku: string; name: string; category: string; brand: string; supplier: string; currentCost: number; newCost: number; sellingPrice: number; status: Status; target?: number; minimum?: number; updatedAt: string };
 export const settings = { target: 35, markup: 55, minimum: 25 };
 export const products: Product[] = [
