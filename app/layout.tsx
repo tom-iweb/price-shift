@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './users.css';
 import './auth.css';
 
 export const metadata: Metadata = { title: 'PriceShift | Margin Control', description: 'Supplier price and margin management' };

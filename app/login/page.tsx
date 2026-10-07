@@ -18,7 +18,7 @@ export default function LoginPage() {
     const supabase = createClient();
     if (!supabase) return;
     setBusy(true); setMessage('');
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     setBusy(false);
     if (error) { setMessage(error.message); return; }
     setStep('code'); setMessage(`We sent a verification code to ${email}.`);

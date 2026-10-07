@@ -18,7 +18,11 @@ Without Supabase environment variables the app displays its authentication setup
 2. Run [`supabase/migrations/0001_initial_schema.sql`](supabase/migrations/0001_initial_schema.sql) in the Supabase SQL editor or through the Supabase CLI.
 3. Add the project URL and anon key to Vercel and `.env.local`, based on `.env.example`.
 4. In Supabase Auth, enable Email sign-in and update the email template to include the OTP token (`{{ .Token }}`), rather than only a magic link.
-5. Sign in with an email and verification code. The migration automatically creates the user’s first workspace, admin membership, and default pricing settings.
+5. Run [`supabase/migrations/0002_skip_workspace_setup_for_invited_users.sql`](supabase/migrations/0002_skip_workspace_setup_for_invited_users.sql) after the initial migration. Sign in with an email and verification code. The migration automatically creates the first owner’s workspace, admin membership, and default pricing settings.
+
+## Manage workspace users
+
+Workspace admins can add users from **Settings → Users**, select an admin, editor, or viewer role, change roles, and remove workspace access. Adding a new email sends Supabase’s invitation email; after accepting it, the person signs in using the usual one-time email code. Existing Supabase users are added immediately.
 
 The schema covers workspaces and roles, pricing thresholds, products, import batches, and immutable audit events. Product rows use pence for prices to avoid currency rounding errors; every row belongs to a workspace.
 
