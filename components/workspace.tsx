@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { ChangeEvent, useMemo, useState } from 'react';
 import { calc, gbp, products as sampleProducts, Product, settings as initialSettings, Status } from '@/lib/pricing';
 import { createClient } from '@/lib/supabase/client';
+import AuthGate from '@/components/auth-gate';
 
 const nav = [['/','D','Dashboard'],['/products','P','Products'],['/upload','U','Upload Costs'],['/analysis','M','Margin Analysis'],['/audit','A','Audit'],['/settings','S','Settings']] as const;
 const label: Record<Status,string> = { cost_pending:'Cost pending', approved:'Approved', applied:'Applied', ignored:'Ignored' };
@@ -13,6 +14,10 @@ function Tone({ value, target, minimum }: {value:number; target:number; minimum:
 function Kpi({ title, value, hint, tone='' }: {title:string;value:string|number;hint:string;tone?:string}) { return <article className={`card ${tone}`}><span>{title}</span><strong>{value}</strong><small>{hint}</small></article>; }
 
 export default function Workspace() {
+ return <AuthGate><WorkspaceContent /></AuthGate>;
+}
+
+function WorkspaceContent() {
  const path = usePathname(); const [items,setItems]=useState<Product[]>(sampleProducts); const [query,setQuery]=useState(''); const [status,setStatus]=useState(''); const [selected,setSelected]=useState<string[]>([]); const [notice,setNotice]=useState(''); const [thresholds,setThresholds]=useState(initialSettings); const [uploadStep,setUploadStep]=useState(1);
  const visible=useMemo(()=>items.filter(p => (!query || `${p.sku} ${p.name} ${p.brand}`.toLowerCase().includes(query.toLowerCase())) && (!status || p.status===status)),[items,query,status]);
  const summary=useMemo(()=>{ const rows=items.map(p=>({p,c:calc(p)})); const affected=rows.filter(x=>x.c.increase>.01); return { affected:affected.length, avg:affected.reduce((n,x)=>n+x.c.increase,0)/affected.length, loss:affected.reduce((n,x)=>n+Math.max(0,-x.c.impact),0), below:rows.filter(x=>x.c.newMargin<thresholds.target).length, urgent:rows.filter(x=>x.c.increase>20).length };},[items,thresholds]);

@@ -10,14 +10,15 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Without Supabase environment variables the app intentionally opens with its local demo catalogue. It is useful for reviewing the interface and workflows before connecting a workspace.
+Without Supabase environment variables the app displays its authentication setup screen. Add the two public variables before using the workspace.
 
 ## Connect Supabase
 
 1. Create a Supabase project.
 2. Run [`supabase/migrations/0001_initial_schema.sql`](supabase/migrations/0001_initial_schema.sql) in the Supabase SQL editor or through the Supabase CLI.
 3. Add the project URL and anon key to Vercel and `.env.local`, based on `.env.example`.
-4. Configure Supabase email/password auth, then create a `workspaces` row and a matching `workspace_members` row for the first user.
+4. In Supabase Auth, enable Email sign-in and update the email template to include the OTP token (`{{ .Token }}`), rather than only a magic link.
+5. Sign in with an email and verification code. The migration automatically creates the user’s first workspace, admin membership, and default pricing settings.
 
 The schema covers workspaces and roles, pricing thresholds, products, import batches, and immutable audit events. Product rows use pence for prices to avoid currency rounding errors; every row belongs to a workspace.
 
@@ -25,7 +26,7 @@ Magento credentials and AI provider keys are workspace-scoped. Add `SUPABASE_URL
 
 ## Deploy to Vercel
 
-Import this folder as a Vercel project, use the default Next.js build settings, and add the two `NEXT_PUBLIC_SUPABASE_*` environment variables. The `npm run build` command is the deployment check.
+Import this folder as a Vercel project, use the default Next.js build settings, and add the public Supabase variables plus the three server-only variables listed in `.env.example`. The `npm run build` command is the deployment check.
 
 ## Routes
 

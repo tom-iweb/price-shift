@@ -13,6 +13,16 @@ alter table public.workspaces enable row level security; alter table public.work
 alter table public.workspace_ai_settings enable row level security;
 create function public.is_workspace_member(target_workspace uuid) returns boolean language sql stable security definer set search_path = public as $$ select exists (select 1 from public.workspace_members where workspace_id = target_workspace and user_id = auth.uid()) $$;
 create function public.can_edit_workspace(target_workspace uuid) returns boolean language sql stable security definer set search_path = public as $$ select exists (select 1 from public.workspace_members where workspace_id = target_workspace and user_id = auth.uid() and role in ('admin', 'editor')) $$;
+create function public.create_workspace_for_new_user() returns trigger language plpgsql security definer set search_path = public as $$
+declare new_workspace_id uuid;
+begin
+  insert into public.workspaces (name) values (coalesce(new.raw_user_meta_data ->> 'workspace_name', split_part(new.email, '@', 1) || '''s workspace')) returning id into new_workspace_id;
+  insert into public.workspace_members (workspace_id, user_id, role) values (new_workspace_id, new.id, 'admin');
+  insert into public.pricing_settings (workspace_id) values (new_workspace_id);
+  return new;
+end;
+$$;
+create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.create_workspace_for_new_user();
 create policy "members can read workspaces" on public.workspaces for select using (public.is_workspace_member(id));
 create policy "members can read memberships" on public.workspace_members for select using (user_id = auth.uid() or public.is_workspace_member(workspace_id));
 create policy "members can read settings" on public.pricing_settings for select using (public.is_workspace_member(workspace_id));
