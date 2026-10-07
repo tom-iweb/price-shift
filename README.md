@@ -46,6 +46,8 @@ Import this folder as a Vercel project, use the default Next.js build settings, 
 
 Run [`supabase/migrations/0004_price_change_reviews.sql`](supabase/migrations/0004_price_change_reviews.sql) after the earlier migrations to enable this workflow.
 
+Run [`supabase/migrations/0005_cost_visibility.sql`](supabase/migrations/0005_cost_visibility.sql) to add the workspace setting that hides cost and margin fields for price-only workflows.
+
 ## Routes
 
 `/` dashboard · `/products` workbench · `/prices` modify prices · `/prices/review` publish queue · `/upload` cost-import wizard · `/analysis` margin analysis · `/audit` approval history · `/settings` pricing rules.
